@@ -1,10 +1,9 @@
 import NMEA.Commands.CommandNMEA
 import NMEA.Enumerations.CommandsName
+import UI.Bundels.MenuBundle
 import UI.`Compose Functions`.AxisMenuAndText
 import UI.`Compose Functions`.ListOfCommands
-import UI.`Helper Functions`.getFileFromDialog
-import UI.`Helper Functions`.imageFromFile
-import UI.`Helper Functions`.resourceExist
+import UI.`Helper Functions`.*
 import androidx.compose.desktop.Window
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -30,26 +29,31 @@ import org.jfree.chart.ChartUtils
 import org.jfree.chart.JFreeChart
 import org.jfree.chart.plot.PlotOrientation
 import org.jfree.chart.ui.HorizontalAlignment
+import org.jfree.data.Range
 import org.jfree.data.xy.XYSeries
 import org.jfree.data.xy.XYSeriesCollection
 import java.awt.Dimension
 import java.awt.FileDialog
 import java.awt.Frame
 import java.io.File
+import java.sql.Time
 import javax.swing.JOptionPane
 import kotlin.random.Random
 
 @OptIn(ExperimentalFoundationApi::class)
 fun main() = Window(size  = IntSize(1280, 720),
                     resizable = false) {
-    var beginTime by remember { mutableStateOf("") }
-    var endTime by remember { mutableStateOf("")}
+    var beginTime by remember { mutableStateOf("00:00:00") }
+    var endTime by remember { mutableStateOf("23:59:59")}
     var imagePath by remember { mutableStateOf("defaultPng.png") }
     var commandsFile by remember { mutableStateOf("") }
     var expand by remember { mutableStateOf(false) }
     var commandsListSize by remember { mutableStateOf(0) }
     var commandsList by remember { mutableStateOf(listOf<CommandNMEA>()) }
     var chosenCommand by remember { mutableStateOf(CommandsName.All) }
+    var xAxis by remember { mutableStateOf("") }
+    var yAxis by remember { mutableStateOf("") }
+
     MaterialTheme {
         Row(modifier = Modifier
             .fillMaxWidth()
@@ -63,7 +67,10 @@ fun main() = Window(size  = IntSize(1280, 720),
                 border(1.dp, Color.Black),
             filePath = commandsFile,
             onListChange = {commandsList = CommandNMEA.readListOfCommandsFromFile(commandsFile, commandType = CommandsName.All); commandsList},
-            onSizeChange = { commandsListSize = it.size; commandsListSize})
+            onSizeChange = { commandsListSize = it.size; commandsListSize},
+            onCommandChange = { chosenCommand = it },
+            menuContent = MenuBundle(name = "All", items = CommandsName.values().toList().map{it.toString()}.sorted())
+            )
 
             Column(modifier = Modifier
                 .fillMaxHeight()
@@ -108,17 +115,22 @@ fun main() = Window(size  = IntSize(1280, 720),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.weight(1F)){
-                        AxisMenuAndText("Начало интервала", beginTime) { beginTime = it }
+                        AxisMenuAndText("Начало интервала", beginTime, menuContent = MenuBundle(name = "x", items = axisMenuItems(chosenCommand)), onDataChanged = { beginTime = it }, onMenuItemChanged = { xAxis = it})
                     }
                     Button(onClick = {
-                                     GlobalScope.async{ testPngSaving{imagePath = it; it} }
+                                     GlobalScope.async{ showChart(commandsList = commandsList,
+                                     chosenCommand = chosenCommand,
+                                     xAxis = xAxis,
+                                     yAxis = yAxis,
+                                     beginTime = beginTime,
+                                     endTime = endTime) { imagePath = it; it }}
                     },
                         modifier = Modifier
-                            .weight(1F))
+                            .weight(1F), enabled = checkButtonEnabled(chosenCommand))
                     {Text("Построить график")}
                     Column(modifier = Modifier
                         .weight(1F), verticalArrangement = Arrangement.Center){
-                        AxisMenuAndText("Конец интервала", endTime) { endTime = it }
+                        AxisMenuAndText("Конец интервала", endTime, menuContent = MenuBundle(name = "y", items = axisMenuItems(chosenCommand)), onDataChanged = { endTime = it}, onMenuItemChanged = { yAxis =it })
                     }
                 }
             }
@@ -147,7 +159,7 @@ val constructXYChart: (List<Double>, String) -> (List<Double>, String) -> JFreeC
             )
     }}
 
-suspend fun testPngSaving(func: (String) -> String){
+suspend fun testPngSaving(chart: JFreeChart, func: (String) -> String){
         val list1 = mutableListOf<Double>()
         val list2 = mutableListOf<Double>()
 
@@ -156,10 +168,11 @@ suspend fun testPngSaving(func: (String) -> String){
             list2.add(Random.nextDouble())
         }
 
+
         val xAxisCreated = constructXYChart(list1, "this is x Axis")
         val createdChart = xAxisCreated(list2, "this is y Axis")
 
         val newAddres = "${Random.nextInt()}.png"
-        ChartUtils.saveChartAsPNG(File("src/main/resources/$newAddres"), createdChart, 800, 600)
+        ChartUtils.saveChartAsPNG(File("src/main/resources/$newAddres"), chart, 800, 600)
         func(newAddres)
 }
