@@ -23,3 +23,13 @@ fun String.toDirection(): Direction {
         }
     }
 }
+
+fun String.toDegreesOrNull():Double?{
+    val regex = """[0-9]{2}[.]{1}[0-9]{1,}""".toRegex()
+    val minutes = regex.find(this)?.value?:let {
+        return@toDegreesOrNull null
+    }
+    val degrees = this.substringBefore(minutes)
+
+    return degrees.toDouble() + minutes.toDouble()/60
+}

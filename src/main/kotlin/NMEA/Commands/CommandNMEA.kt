@@ -9,18 +9,20 @@ import java.sql.Time
 sealed class CommandNMEA(commandStr: String){
     val commandsList: List<String?> = commandStr.split(",").map { it.ifBlank { null } }
     abstract val messageID: String
-    abstract val timeUTC: Time
-    abstract val latitude: Double
-    abstract val longitude: Double
-    abstract val indicatorNS: Direction
-    abstract val indicatorEW: Direction
+    abstract val timeUTC: Time?
+    abstract val latitude: Double?
+    abstract val longitude: Double?
+    abstract val indicatorNS: Direction?
+    abstract val indicatorEW: Direction?
 
     protected fun extractMessageName():String{
         return commandsList[0]!!.substring(1)
     }
 
-    protected fun extractUTCTime():Time{
+    protected fun extractUTCTime():Time?{
         val regex = """[0-9]{2}""".toRegex()
+        if(commandsList[1] == null)
+            return null
         val (hours, minutes, seconds) = regex.findAll(commandsList[1]!!).map { it.value.toInt() }.toList()
         return Time.valueOf("$hours:$minutes:$seconds")
     }
@@ -35,6 +37,7 @@ sealed class CommandNMEA(commandStr: String){
                 }
             }
 
+
         fun readListOfCommandsFromFile(filePath: String, commandType: CommandsName):List<CommandNMEA>{
             val file = File(filePath)
             val list: MutableList<CommandNMEA> = mutableListOf()
@@ -43,7 +46,11 @@ sealed class CommandNMEA(commandStr: String){
 
             file.forEachLine {
                 if(it.contains(keySubstring))
-                    list.add(commandFromString(it))
+                    try {
+                        list.add(commandFromString(it))
+                    }catch (e: IllegalArgumentException){
+
+                    }
             }
 
             return list.toList()

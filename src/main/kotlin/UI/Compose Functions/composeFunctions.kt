@@ -4,6 +4,7 @@ import NMEA.Commands.CommandGGA
 import NMEA.Commands.CommandNMEA
 import NMEA.Commands.CommandRMC
 import NMEA.Enumerations.CommandsName
+import UI.Bundels.MenuBundle
 import UI.`Helper Functions`.imageFromFile
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -33,27 +34,20 @@ import androidx.compose.ui.text.substring
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import java.io.File
 import kotlin.reflect.full.memberProperties
 
 
 @Composable
-fun AxisMenuAndText(label: String, mutableData: String, onDataChanged: (String) -> Unit){
+fun AxisMenuAndText(label: String, mutableData: String, menuContent: MenuBundle, onDataChanged: (String) -> Unit, onMenuItemChanged:(String) -> Unit){
     var isValid = false
     var expanded by remember { mutableStateOf(false) }
     if(mutableData.isNotBlank())
         isValid = true
-    CategoryMenu(Modifier.padding(start = 8.dp, end = 8.dp), CommandsName.values().toList().map{it.toString()}, "x", { })
-//    val test1:CommandNMEA = CommandGGA("\$GPGGA,114045.00,5035.249337,N,03635.241527,E,1,12,0.4,120.4,M,17.4,M,,*64")
-//    val list = test1::class.memberProperties.map{
-//        val regex = """.[a-z A-z]+:""".toRegex()
-//        val res = regex.find(it.toString())?.value
-//        res?.substring(1..res.length-2)
-//    }
-//    list.forEach {
-//        println(it)
-//    }
+    CategoryMenu(Modifier.padding(start = 8.dp, end = 8.dp), menuContent, onMenuItemChanged)
     Text(text = "$label:", modifier = Modifier.padding(start = 8.dp, end = 8.dp))
     TextField(
         value = mutableData,
@@ -67,7 +61,7 @@ fun AxisMenuAndText(label: String, mutableData: String, onDataChanged: (String) 
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ListOfCommands(modifier: Modifier, filePath: String, onListChange: () -> List<CommandNMEA>, onSizeChange: (List<CommandNMEA>) -> Int){
+fun ListOfCommands(modifier: Modifier, filePath: String, menuContent: MenuBundle, onListChange: () -> List<CommandNMEA>, onSizeChange: (List<CommandNMEA>) -> Int, onCommandChange: (CommandsName) -> Unit){
     var size by remember { mutableStateOf(0) }
     var chosenCommand by remember { mutableStateOf(CommandsName.All) }
     val listState = rememberLazyListState()
@@ -81,13 +75,14 @@ fun ListOfCommands(modifier: Modifier, filePath: String, onListChange: () -> Lis
                 modifier = Modifier.border(1.dp, Color.Black)
                     .fillParentMaxWidth()
                     .background(Color.White)){
-                CategoryMenu(Modifier.weight(1F).padding(8.dp), CommandsName.values().toList().map {it.toString()}.sorted(), "All"){
+                CategoryMenu(Modifier.weight(1F).padding(8.dp), menuContent){
                     chosenCommand = when(it){
-                        "All "-> CommandsName.All
+                        "All"-> CommandsName.All
                         "GGA" -> CommandsName.GGA
                         "RMC" -> CommandsName.RMC
                         else -> chosenCommand
                     }
+                    onCommandChange(chosenCommand)
                     coroutineScope.launch { listState.scrollToItem( index= 0 ) }
                 }
                 Text(text = "Info", fontSize = 25.sp, modifier = Modifier.weight(1F), textAlign = TextAlign.Center)
@@ -109,9 +104,9 @@ fun ListOfCommands(modifier: Modifier, filePath: String, onListChange: () -> Lis
 }
 
 @Composable
-fun CategoryMenu(modifier: Modifier, menuItems: List<String>, menuName: String, onItemClicked: (String) -> Unit){
+fun CategoryMenu(modifier: Modifier, menuContent: MenuBundle, onItemClicked: (String) -> Unit){
     var expanded by remember { mutableStateOf(false) }
-    var name by remember { mutableStateOf(menuName) }
+    var name by remember { mutableStateOf(menuContent.name) }
     Box(modifier = modifier.border(1.dp, Color.Gray, shape = RoundedCornerShape(15))){
         Row(modifier = Modifier.clickable { expanded = true }.fillMaxWidth().padding(start = 16.dp)){
             Text(
@@ -129,13 +124,13 @@ fun CategoryMenu(modifier: Modifier, menuItems: List<String>, menuName: String, 
             },
             modifier = Modifier.scrollable(state = ScrollableState { 1F }, orientation = Orientation.Vertical )
         ){
-            for(i in menuItems){
+            for(i in menuContent.items){
                 Text(
-                    text = i,
+                    text = i?:"",
                     modifier = Modifier.clickable {
                         expanded = false
-                        name = i
-                        onItemClicked(i)
+                        name = i?:""
+                        onItemClicked(i?:"")
                     }.padding(start = 8.dp, end = 8.dp))
             }
         }
