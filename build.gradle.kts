@@ -3,8 +3,8 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "1.5.10"
-    id("org.jetbrains.compose") version "0.4.0"
+    kotlin("jvm") version "1.5.31"
+    id("org.jetbrains.compose") version "1.0.0"
 }
 
 group = "me.tewat"
@@ -21,6 +21,9 @@ dependencies {
     implementation("org.jfree:jfreechart:1.5.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2")
     implementation(kotlin("reflect"))
+    implementation("com.github.doyaaaaaken:kotlin-csv-jvm:1.2.0")
+    implementation("org.jetbrains.kotlinx:multik-api:0.1.1")
+    implementation("org.jetbrains.kotlinx:multik-default:0.1.1")
 
 }
 

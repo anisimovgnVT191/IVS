@@ -1,16 +1,17 @@
 package NMEA.Commands
 import NMEA.Enumerations.Direction
+import NMEA.Extensions.toDegreesOrNull
 import NMEA.Extensions.toDirection
 import java.sql.Date
 import java.sql.Time
 
-class CommandRMC(commandStr: String): CommandNMEA(commandStr){
+class CommandRMC(commandStr: String): CommandNMEA(commandStr), Position{
     override val messageID: String by lazy { extractMessageName() }
-    override val timeUTC: Time? by lazy { extractUTCTime() }
+    override val timeUTC: Time? by lazy { extractUTCTime(list = commandsList) }
     val status: Char? = commandsList[2]?.get(0)
-    override val latitude: Double? = commandsList[3]?.toDoubleOrNull()?:0.0
+    override val latitude: Double? = commandsList[3]?.toDegreesOrNull()?:0.0
     override val indicatorNS: Direction? = commandsList[4]?.toDirection()
-    override val longitude: Double? = commandsList[5]?.toDoubleOrNull()?:0.0
+    override val longitude: Double? = commandsList[5]?.toDegreesOrNull()?:0.0
     override val indicatorEW: Direction? = commandsList[6]?.toDirection()
     val speedOverGround: Double? = commandsList[7]?.toDouble()?:0.0
     val courseOverGround: Double? = commandsList[8]?.toDoubleOrNull()?:0.0

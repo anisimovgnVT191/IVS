@@ -1,5 +1,11 @@
 *.iml
+.gradle
+/local.properties
+.idea/*
+!.idea/codeStyles
+.DS_Store
 /src/main/resources
 /build
-.gradle
-.idea
+/captures
+.externalNativeBuild
+.cxx
